@@ -3,18 +3,40 @@
 		class="theme-picker"
 		popper-class="theme-picker-dropdown"
 		v-model="theme"
-	></el-color-picker>
+		:size="size"
+	>
+	</el-color-picker>
 </template>
 
 <script>
-const version = require('element-ui/package.json').version // element-ui version from node_modules
-const ORIGINAL_THEME = '#ffb733' // default color
+const version = require('element-ui/package.json').version
+const ORIGINAL_THEME = '#409EFF'
 
 export default {
+	name: 'ThemePicker',
+	props: {
+		default: {
+			type: String,
+			default: ORIGINAL_THEME
+		},
+		size: {
+			// 初始化主题，可由外部传入
+			type: String,
+			default: 'small'
+		}
+	},
 	data() {
 		return {
 			chalk: '', // content of theme-chalk css
-			theme: ORIGINAL_THEME
+			theme: ORIGINAL_THEME,
+			showSuccess: true // 是否弹出换肤成功消息
+		}
+	},
+	mounted() {
+		if (this.default !== null) {
+			this.theme = this.default
+			this.$emit('onThemeChange', this.theme)
+			this.showSuccess = false
 		}
 	},
 	watch: {
@@ -23,7 +45,6 @@ export default {
 				return
 			}
 			const themeCluster = this.getThemeCluster(val.replace('#', ''))
-
 			let originalCluster = this.getThemeCluster(oldVal.replace('#', ''))
 
 			const getHandler = (variable, id) => {
@@ -31,7 +52,6 @@ export default {
 					originalCluster = this.getThemeCluster(
 						ORIGINAL_THEME.replace('#', '')
 					)
-
 					const newStyle = this.updateStyle(
 						this[variable],
 						originalCluster,
@@ -82,15 +102,20 @@ export default {
 					themeCluster
 				)
 			})
-			this.$message({
-				message: '换肤成功',
-				type: 'success'
-			})
 
-			document.documentElement.style.setProperty('--Main', val)
+			// 响应外部操作
+			this.$emit('onThemeChange', val)
+			//存入localStorage
+			if (this.showSuccess) {
+				this.$message({
+					message: '换肤成功',
+					type: 'success'
+				})
+			} else {
+				this.showSuccess = true
+			}
 		}
 	},
-
 	methods: {
 		updateStyle(style, oldCluster, newCluster) {
 			let newStyle = style
@@ -158,7 +183,7 @@ export default {
 				return `#${red}${green}${blue}`
 			}
 
-			const clusters = [theme]
+			let clusters = [theme]
 
 			for (let i = 0; i <= 9; i++) {
 				clusters.push(tintColor(theme, Number((i / 10).toFixed(2))))
